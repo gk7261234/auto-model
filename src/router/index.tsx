@@ -14,7 +14,17 @@ const routes: routeType[] = [
           loader: () => import("../pages/Example/Example"),
           loading: () => <div />
         })
-    }
+    },
+    {
+      title: "绘制模型",
+      exact: true,
+      key: "workspace",
+      path: "/workspace",
+      component: Loadable({
+        loader: () => import("../pages/workspace/index"),
+        loading: () => <div />
+      })
+  },
 ];
 
 export default routes;

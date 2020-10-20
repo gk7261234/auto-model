@@ -8,3 +8,5 @@ declare module "react"
 declare module "react-router-dom"
 
 declare module "react-loadable"
+
+declare module "file-saver"
