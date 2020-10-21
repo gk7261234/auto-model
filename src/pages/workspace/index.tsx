@@ -82,6 +82,12 @@ import { Tools } from "../../config/config"
 import { getNodeById } from "../../service/workspace/index";
 
 import Header from "./components/Header"
+import NodeComponent from './components/nodeAttrComponent';
+import BackgroundComponent from './components/globalAttrComponent';
+import LineComponent from './components/lineAttrComponent';
+import NodeTreeComponent from "./components/nodeTreeComponent";
+import ModelComponent from "./components/modelComponent";
+
 import "./index.scss"
 const { confirm } = Modal;
 let canvas: Topology;
@@ -116,6 +122,9 @@ const WorkSpace = ({ history }: Props) => {
     canvasOptions.on = onMessage;
     canvasRegister();
     canvas = new Topology('topology-canvas', canvasOptions);
+    canvas.data.lineName = "line";
+    canvas.data.toArrowType = "空";
+    canvas.render();
     (async function getNodeData() {
       const data = await getNodeById("5dcd1fe16025d712f05ace89");
       canvas.open(data.data)
@@ -282,16 +291,43 @@ const WorkSpace = ({ history }: Props) => {
     }
   }
 
+  // 顶部__操作栏
   const renderHeader = useMemo(() => {
     if (isLoadCanvas)
       return <Header canvas={canvas} history={history} />
   }, [isLoadCanvas, history])
+
+  interface IAttrAreaConfig {
+    node: JSX.Element;
+    line: JSX.Element;
+    default: JSX.Element;
+  }
+  // 左侧__属性栏配置
+  const attrAreaConfig = useMemo<IAttrAreaConfig>(() => {
+    return {
+      node: selected && <NodeComponent data={selected} onFormValueChange={onHandleFormValueChange} />, // 渲染Node节点类型的组件
+      line: selected && <LineComponent data={selected} onFormValueChange={onHandleLineFormValueChange} />, // 渲染线条类型的组件
+      default: canvas && <BackgroundComponent data={canvas} /> // 渲染画布背景的组件
+    }
+  }, [selected, onHandleFormValueChange, onHandleLineFormValueChange])
+
+  // 左侧__渲染属性栏
+  const renderAttrArea = useMemo(() => {
+    let _component = attrAreaConfig.default;
+    Object.keys(attrAreaConfig).forEach(item => {
+      if (selected[item]) {
+        _component = attrAreaConfig[item]
+      }
+    })
+    return _component;
+  }, [selected, attrAreaConfig]);
 
   return (
     <Fragment>
       { renderHeader}
       <div className="page">
         <div className="tool">
+        {/* 控件栏 start */}
         {
             Tools.map((item, index) => <div key={index}>
               <div className="title">{item.group}</div>
@@ -307,27 +343,45 @@ const WorkSpace = ({ history }: Props) => {
               </div>
             </div>)
           }
+          {/* 控件栏 end */}
+          {/* 属性栏 start */}
+          { renderAttrArea }
+          {/* 属性栏 end */}
         </div>
         <div className="full">
-        <svg
-            width="100%"
-            height="100%"
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: 0,
-              bottom: 0,
-            }}
-            xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#f3f3f3" strokeWidth="1" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-          <div id="topology-canvas" style={{ height: '100%', width: '100%' }} />
+          <svg
+              width="100%"
+              height="100%"
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+              }}
+              xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                  <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#f3f3f3" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
+            <div id="topology-canvas" style={{ height: '100%', width: '100%' }} />
+        </div>
+        <div className="props">
+          {/* 概要栏 start */}
+          <div className="item">
+            <div className="title">概要栏</div>
+            <NodeTreeComponent />
+          </div>
+          {/* 概要栏 end */}
+          {/* 模型显示栏 start */}
+          <div className="item">
+            <div className="title">模型显示栏</div>
+            <ModelComponent />
+          </div>
+          {/* 模型显示栏 end */}
         </div>
       </div>
     </Fragment>
