@@ -87,6 +87,7 @@ import BackgroundComponent from './components/globalAttrComponent';
 import LineComponent from './components/lineAttrComponent';
 import NodeTreeComponent from "./components/nodeTreeComponent";
 import ModelComponent from "./components/modelComponent";
+import ContextMenu from "./components/contextMenu";
 
 import "./index.scss"
 const { confirm } = Modal;
@@ -105,6 +106,15 @@ interface Iselected {
 }
 
 const WorkSpace = ({ history }: Props) => {
+  const [contextmenu, setContextmenu] = useState<any>({
+    position: 'fixed',
+    zIndex: '10',
+    display: 'none',
+    left: '',
+    top: '',
+    bottom: ''
+  });
+  
   const [selected, setSelected] = useState<Iselected>({
     node: null,
     line: null,
@@ -125,10 +135,10 @@ const WorkSpace = ({ history }: Props) => {
     canvas.data.lineName = "line";
     canvas.data.toArrowType = "空";
     canvas.render();
-    (async function getNodeData() {
-      const data = await getNodeById("5dcd1fe16025d712f05ace89");
-      canvas.open(data.data)
-    })();
+    // (async function getNodeData() {
+    //   const data = await getNodeById("5dcd1fe16025d712f05ace89");
+    //   canvas.open(data.data)
+    // })();
 
     // if (history.location.state.from === "/preview") {
     //   confirm({
@@ -148,6 +158,14 @@ const WorkSpace = ({ history }: Props) => {
     //   }
     // }
     setIsLoadCanvas(true);
+    document.onclick = event => {
+      setContextmenu({
+        display: 'none',
+        left: '',
+        top: '',
+        bottom: ''
+      });
+    }
   }, [history]);
 
   // 注册图形库
@@ -223,14 +241,36 @@ const WorkSpace = ({ history }: Props) => {
     canvas.updateProps(selected.node);
   }, [selected]);
 
+  const getLocked = (data: any) => {
+    let locked = true
+    if (data.nodes && data.nodes.length) {
+      for (const item of data.nodes) {
+        if (!item.locked) {
+          locked = false
+          break
+        }
+      }
+    }
+    if (locked && data.lines) {
+      for (const item of data.lines) {
+        if (!item.locked) {
+          locked = false
+          break
+        }
+      }
+    }
+
+    return locked
+  }
+
   /**
    * 当线条表单数据变化时, 重新渲染canvas
    * @params {object} value - 图形的宽度,高度, x, y等等
    */
 
   const onHandleLineFormValueChange = useCallback(value => {
-    const { dash, lineWidth, strokeStyle, name, fromArrow, toArrow, ...other } = value;
-    const changedValues = { line: { rect: other, lineWidth, dash, strokeStyle, name, fromArrow, toArrow } }
+    const { lineWidth, strokeStyle } = value;
+    const changedValues = { line: { lineWidth, strokeStyle } }
     if (changedValues.line) {
       // 遍历查找修改的属性，赋值给原始line
       for (const key in changedValues.line) {
@@ -243,10 +283,11 @@ const WorkSpace = ({ history }: Props) => {
             }
           }
         } else {
-          selected.line[key] = (changedValues.line as any);
+          selected.line[key] = (changedValues.line as any)[key];
         }
       }
     }
+    console.log(selected)
     canvas.updateProps(selected.line);
   }, [selected]);
 
@@ -256,6 +297,7 @@ const WorkSpace = ({ history }: Props) => {
    * @params {object} data - 节点数据
    */
   const onMessage = (event: any, data: any) => {
+    console.log("event: ", event, data);
     switch (event) {
       case 'node': // 节点
       case 'addNode':
@@ -277,6 +319,15 @@ const WorkSpace = ({ history }: Props) => {
           locked: data.locked
         })
         break;
+      case 'multi':
+        setSelected({
+          node: null,
+          line: null,
+          multi: true,
+          nodes: Array.isArray(data) && data.length > 1 ? data : null,
+          locked: getLocked(data)
+        })
+        break;
       case 'space':  // 空白处
         setSelected({
           node: null,
@@ -290,6 +341,35 @@ const WorkSpace = ({ history }: Props) => {
         break;
     }
   }
+
+  // 鼠标事件
+  const hanleContextMenu = (event: any) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (event.clientY + 360 < document.body.clientHeight) {
+      setContextmenu({
+        position: 'fixed',
+        zIndex: '10',
+        display: 'block',
+        left: event.clientX + 'px',
+        top: event.clientY + 'px',
+        bottom: ''
+      });
+
+    } else {
+      setContextmenu({
+        position: 'fixed',
+        zIndex: '10',
+        display: 'block',
+        left: event.clientX + 'px',
+        top: event.clientY + 'px',
+        bottom: ''
+      });
+    }
+    console.log()
+  }
+
 
   // 顶部__操作栏
   const renderHeader = useMemo(() => {
@@ -367,7 +447,10 @@ const WorkSpace = ({ history }: Props) => {
               </defs>
               <rect width="100%" height="100%" fill="url(#grid)" />
             </svg>
-            <div id="topology-canvas" style={{ height: '100%', width: '100%' }} />
+            <div id="topology-canvas" style={{ height: '100%', width: '100%' }} onContextMenu={hanleContextMenu} />
+            <div style={contextmenu}>
+              <ContextMenu data={selected} canvas={canvas} />
+            </div>
         </div>
         <div className="props">
           {/* 概要栏 start */}

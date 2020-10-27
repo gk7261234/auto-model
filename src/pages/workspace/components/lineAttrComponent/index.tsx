@@ -9,27 +9,21 @@ interface Props {
   onFormValueChange: any;
 }
 const CanvasProps: React.FC<Props> = ({ data, onFormValueChange }) => {
-  const [form] = Form.useForm();
-
-  const { lineWidth, dash, strokeStyle, name, fromArrow, toArrow } = data?.line || {};
-
-  useEffect(() => {
-    // form.validateFields((err, value) => {
-    //   if (err) return;
-    //   if (Object.keys(data).length === 0) return;
-    //   if (value.lineWidth === lineWidth && value.dash === dash && value.strokeStyle === strokeStyle && value.name === name && value.toArrow === toArrow && value.fromArrow === fromArrow) return;
-    //   onFormValueChange(value);
-    //   form.resetFields();
-    // })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form])
+  const { lineWidth, strokeStyle } = data?.line || {};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const onFormChange = (changedValues: any, allValues: any) => {
+    if (Object.keys(data).length === 0) return;
+    if (allValues.lineWidth === lineWidth && allValues.strokeStyle === strokeStyle) return;
+    onFormValueChange(allValues);
+    // form.resetFields();
+  }
 
   /**
    * 渲染位置和大小的表单
    */
 
   const renderForm = useMemo(() => {
-    return <Form>
+    return <Form onValuesChange={onFormChange}>
       <Row>
         <Col span={24}>
           <Form.Item label="颜色" name="strokeStyle" initialValue={strokeStyle}>
@@ -43,7 +37,7 @@ const CanvasProps: React.FC<Props> = ({ data, onFormValueChange }) => {
         </Col>
       </Row>
     </Form>
-  }, [lineWidth, strokeStyle]);
+  }, [lineWidth, onFormChange, strokeStyle]);
 
 
   return (
